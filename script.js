@@ -20,6 +20,13 @@ let currentView = 'home';
 let selectedCategory = null;
 let currentPost = null;
 
+function stripHtml(html) {
+    let temp = document.createElement('div');
+    temp.innerHTML = html;
+    return temp.textContent || temp.innerText || '';
+}
+
+
 const appContainer = document.getElementById('app');
 const mainContent = document.getElementById('main-content');
 const homeBtn = document.getElementById('home-btn');
@@ -150,7 +157,7 @@ function renderCategoryList() {
                         style="background-color: ${['#fff7d1', '#ffdee1', '#e2f7cb'][idx % 3]}"
                     >
                         <h3>${post.titulo}</h3>
-                        <div style="overflow: hidden; flex-grow: 1;">${post.conteudo.substring(0, 100)}...</div>
+                        <div style="overflow: hidden; flex-grow: 1;">${stripHtml(post.conteudo).substring(0, 100)}...</div>
                     </div>
                 `).join('')}
             </div>
@@ -173,16 +180,17 @@ function renderCategoryList() {
     }
 
     mainContent.innerHTML = `
-        <div>
-            <div style="padding: 20px;">
-                <button onclick="setView('home')" class="nav-btn"><i data-feather="chevron-left" size="20"></i> Voltar</button>
-            </div>
-            ${listContent}
-        </div>
-    `;
+    <div style="padding: 20px;">
+        <button onclick="setView('home')" class="nav-btn">
+            <i data-feather="chevron-left" size="20"></i> Voltar
+        </button>
+    </div>
+    ${listContent}
+`;
+
     feather.replace();
 
-    mainContent.querySelectorAll('[data-post-id]').forEach(element => {
+    mainContent.querySelectorAll('.post-it-card, .post-row').forEach(element => {
         element.onclick = () => {
             const postId = element.getAttribute('data-post-id');
             const post = posts.find(p => p.id == postId);
@@ -264,6 +272,14 @@ function renderCreate() {
     const richEditor = document.getElementById('rich-editor');
     const saveBtn = document.getElementById('save-post-btn');
 
+    richEditor.addEventListener('paste', function(e) {
+        e.preventDefault();
+
+        const text = e.clipboardData.getData('text/plain');
+
+        document.execCommand('insertText', false, text);
+    });
+
     editorCategory.onchange = () => {
         if (editorCategory.value === 'post-its') {
             editorTitle.setAttribute('disabled', 'true');
@@ -297,6 +313,7 @@ function renderCreate() {
 }
 
 function renderApp() {
+    mainContent.innerHTML = ''; 
     renderHeaderControls();
 
     switch (currentView) {
@@ -322,7 +339,10 @@ async function init() {
 
     await fetchPosts();
 
+    mainContent.innerHTML = '';
+
     renderApp();
 }
+
 
 init();
