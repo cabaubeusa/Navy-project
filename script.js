@@ -79,6 +79,42 @@ async function handleSavePost(titulo, conteudo, categoria) {
     }
 }
 
+async function handleUpdatePost(id, titulo, conteudo, categoria) {
+    if (!conteudo || (!titulo && categoria !== 'post-its')) {
+        alert('O vazio não pode ser atualizado.');
+        return;
+    }
+
+    const postData = {
+        titulo: categoria === 'post-its'
+            ? `Post-it nº ${posts.filter(p => p.categoria === 'post-its' && p.id !== id).length + 1}`
+            : titulo,
+        conteudo,
+        categoria
+    };
+
+    try {
+        await fetch(`${supabaseUrl}/rest/v1/posts?id=eq.${id}`, {
+            method: "PATCH",
+            headers: {
+                ...API_HEADERS,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify(postData)
+        });
+
+        await fetchPosts();
+        const updatedPost = posts.find(p => p.id == id);
+        
+        setView('post', updatedPost.categoria, updatedPost); 
+
+    } catch (error) {
+        console.error("Erro ao atualizar post:", error);
+        alert("Falha ao atualizar a memória.");
+    }
+}
+
+
 async function handleDelete(id) {
     if (!confirm('Deseja apagar esta memória?')) return;
 
@@ -98,8 +134,17 @@ async function handleDelete(id) {
 
 function setView(view, category = null, post = null) {
     currentView = view;
-    selectedCategory = category;
-    currentPost = post;
+    
+    if (category !== null) {
+        selectedCategory = category;
+    }
+
+    if (post !== null) {
+        currentPost = post;
+    } else if (view === 'create') {
+        currentPost = null;
+    }
+
     renderApp();
 }
 
@@ -108,7 +153,7 @@ function renderHeaderControls() {
     createBtn.innerHTML = '<i data-feather="plus" size="20"></i>';
 
     homeBtn.style.display = currentView !== 'home' ? 'flex' : 'none';
-    createBtn.style.display = currentView !== 'create' ? 'flex' : 'none';
+    createBtn.style.display = currentView !== 'create' && currentView !== 'edit' ? 'flex' : 'none';
 
     homeBtn.onclick = () => setView('home');
     createBtn.onclick = () => setView('create');
@@ -194,7 +239,7 @@ function renderCategoryList() {
         element.onclick = () => {
             const postId = element.getAttribute('data-post-id');
             const post = posts.find(p => p.id == postId);
-            setView('post', selectedCategory, post);
+            setView('post', selectedCategory, post); 
         };
     });
 }
@@ -212,7 +257,7 @@ function renderSinglePost() {
     mainContent.innerHTML = `
         <div>
             <div style="padding: 20px; display: flex; justify-content: space-between;">
-                <button onclick="setView('category', '${selectedCategory}')" class="nav-btn"><i data-feather="chevron-left" size="20"></i> Voltar</button>
+                <button onclick="setView('category', '${currentPost.categoria}')" class="nav-btn"><i data-feather="chevron-left" size="20"></i> Voltar</button>
             </div>
             <div class="single-post-wrapper fade-in ${containerClass}">
                 <div class="post-content-area">
@@ -224,6 +269,9 @@ function renderSinglePost() {
                     <div class="post-body">${currentPost.conteudo}</div>
                     
                     <div class="post-actions">
+                        <button onclick="setView('edit')" class="btn-icon" style="margin-right: 15px;">
+                            <i data-feather="edit" size="16"></i> Editar
+                        </button>
                         <button onclick="handleDelete('${currentPost.id}')" class="btn-icon"><i data-feather="trash-2" size="16"></i> Apagar</button>
                     </div>
                 </div>
@@ -264,7 +312,16 @@ function renderCreate() {
             </button>
         </div>
     `;
-    mainContent.innerHTML = editor;
+
+    mainContent.innerHTML = `
+        <div style="padding: 20px;">
+            <button onclick="setView('home')" class="nav-btn">
+                <i data-feather="chevron-left" size="20"></i> Voltar
+            </button>
+        </div>
+        ${editor}
+    `;
+
     feather.replace();
 
     const editorTitle = document.getElementById('editor-title');
@@ -272,7 +329,7 @@ function renderCreate() {
     const richEditor = document.getElementById('rich-editor');
     const saveBtn = document.getElementById('save-post-btn');
 
-    richEditor.addEventListener('paste', function(e) {
+    richEditor.addEventListener('paste', function (e) {
         e.preventDefault();
 
         const text = e.clipboardData.getData('text/plain');
@@ -312,6 +369,108 @@ function renderCreate() {
     };
 }
 
+function renderEdit() {
+    if (!currentPost) return;
+
+    const editor = `
+        <div class="editor-wrapper fade-in">
+            <input 
+                id="editor-title" 
+                type="text" 
+                placeholder="Dê um nome ao sentimento..." 
+                class="input-title"
+                value="${currentPost.categoria !== 'post-its' ? currentPost.titulo : ''}"
+                ${currentPost.categoria === 'post-its' ? 'disabled' : ''}
+            />
+            
+            <select id="editor-category" class="category-select">
+                ${Object.entries(CATEGORIES).map(([key, cat]) => `
+                    <option value="${key}" ${key === currentPost.categoria ? 'selected' : ''}>${cat.label}</option>
+                `).join('')}
+            </select>
+
+            <div class="toolbar">
+                <button class="tool-btn" onclick="document.execCommand('bold')">Negrito</button>
+                <button class="tool-btn" onclick="document.execCommand('italic')">Itálico</button>
+                <button class="tool-btn" onclick="insertImage()">Imagem</button>
+                <button class="tool-btn" onclick="insertVideo()">Vídeo</button>
+            </div>
+
+            <div 
+                id="rich-editor"
+                class="rich-editor" 
+                contentEditable="true"
+                data-placeholder="Escreva..."
+                style="border-bottom: 1px solid #eee; margin-bottom: 20px;"
+            >${currentPost.conteudo}</div>
+
+            <button id="save-post-btn" class="btn-primary">
+                <i data-feather="save" size="16"></i> Salvar Alterações
+            </button>
+            
+        </div>
+    `;
+
+    mainContent.innerHTML = `
+        <div style="padding: 20px;">
+            <button onclick="setView('post', '${currentPost.categoria}', currentPost)" class="nav-btn">
+                <i data-feather="chevron-left" size="20"></i> Cancelar
+            </button>
+        </div>
+        ${editor}
+    `;
+
+    feather.replace();
+
+    const editorTitle = document.getElementById('editor-title');
+    const editorCategory = document.getElementById('editor-category');
+    const richEditor = document.getElementById('rich-editor');
+    const saveBtn = document.getElementById('save-post-btn');
+
+    if (currentPost.categoria === 'post-its') {
+        editorTitle.placeholder = "Título automático para post-its";
+    }
+
+    richEditor.addEventListener('paste', function (e) {
+        e.preventDefault();
+        const text = e.clipboardData.getData('text/plain');
+        document.execCommand('insertText', false, text);
+    });
+
+    editorCategory.onchange = () => {
+        if (editorCategory.value === 'post-its') {
+            editorTitle.setAttribute('disabled', 'true');
+            editorTitle.placeholder = "Título automático para post-its";
+            editorTitle.value = '';
+        } else {
+            editorTitle.removeAttribute('disabled');
+            editorTitle.placeholder = "Dê um nome ao sentimento...";
+            editorTitle.value = currentPost.categoria !== 'post-its' ? currentPost.titulo : '';
+        }
+    };
+
+    saveBtn.onclick = () => {
+        const title = editorTitle.value;
+        const content = richEditor.innerHTML;
+        const category = editorCategory.value;
+        handleUpdatePost(currentPost.id, title, content, category); 
+    };
+
+    window.insertImage = () => {
+        const url = prompt('URL da Imagem:');
+        if (url) document.execCommand('insertImage', false, url);
+    };
+
+    window.insertVideo = () => {
+        const url = prompt('URL do YouTube:');
+        if (url) {
+            const embed = `<iframe width="100%" height="315" src="${url.replace('watch?v=', 'embed/')}" frameborder="0" allowfullscreen></iframe>`;
+            document.execCommand('insertHTML', false, embed);
+        }
+    };
+}
+
+
 function renderApp() {
     mainContent.innerHTML = ''; 
     renderHeaderControls();
@@ -328,6 +487,9 @@ function renderApp() {
             break;
         case 'post':
             renderSinglePost();
+            break;
+        case 'edit':
+            renderEdit();
             break;
         default:
             renderHome();

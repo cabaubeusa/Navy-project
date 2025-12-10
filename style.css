@@ -36,6 +36,10 @@ body {
     flex-direction: column;
 }
 
+main {
+    flex-grow: 1;
+}
+
 .fade-in {
     animation: fadeIn 0.8s ease forwards;
 }
