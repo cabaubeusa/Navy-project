@@ -1,9 +1,9 @@
-const supabaseUrl = 'https://gysfboiuufifyxydnprz.supabase.co'
-const supabaseKey = 'sb_publishable_Sk3JxNOIHCzM8rVi3PWQcw_u1SrYl4O'
+const supabaseUrl = 'https://gysfboiuufifyxydnprz.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5c2Zib2l1dWZpZnl4eWRucHJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjUzMDYwMTcsImV4cCI6MjA4MDg4MjAxN30.LQdMvqNSuG_BHGoUjggroO1_L0HyBVYDWaoxQBV4XOw';
 
 const API_HEADERS = {
-    apikey: SUPABASE_KEY,
-    Authorization: `Bearer ${SUPABASE_KEY}`
+    apikey: supabaseKey,
+    Authorization: `Bearer ${supabaseKey}`
 };
 
 const CATEGORIES = {
@@ -27,12 +27,12 @@ const createBtn = document.getElementById('create-btn');
 
 async function fetchPosts() {
     try {
-        const url = `${SUPABASE_URL}/rest/v1/posts?select=*`;
+        const url = `${supabaseUrl}/rest/v1/posts?select=*`;
         const response = await fetch(url, { headers: API_HEADERS });
         const data = await response.json();
 
         posts = data || [];
-        posts.sort((a, b) => new Date(b.dataCriacao) - new Date(a.dataCriacao));
+        posts.sort((a, b) => new Date(b.datacriacao) - new Date(a.datacriacao));
     } catch (error) {
         console.error("Erro ao buscar posts:", error);
     }
@@ -50,11 +50,11 @@ async function handleSavePost(titulo, conteudo, categoria) {
             : titulo,
         conteudo,
         categoria,
-        dataCriacao: new Date().toISOString()
+        datacriacao: new Date().toISOString()
     };
 
     try {
-        await fetch(`${SUPABASE_URL}/rest/v1/posts`, {
+        await fetch(`${supabaseUrl}/rest/v1/posts`, {
             method: "POST",
             headers: {
                 ...API_HEADERS,
@@ -76,7 +76,7 @@ async function handleDelete(id) {
     if (!confirm('Deseja apagar esta memória?')) return;
 
     try {
-        await fetch(`${SUPABASE_URL}/rest/v1/posts?id=eq.${id}`, {
+        await fetch(`${supabaseUrl}/rest/v1/posts?id=eq.${id}`, {
             method: "DELETE",
             headers: API_HEADERS
         });
@@ -164,7 +164,7 @@ function renderCategoryList() {
                 ${filtered.length === 0 ? '<p class="empty-msg">Ainda não há nada aqui.</p>' : ''}
                 ${filtered.map(post => `
                     <div data-post-id="${post.id}" class="post-row">
-                        <span class="post-date">${new Date(post.dataCriacao).toLocaleDateString()}</span>
+                        <span class="post-date">${new Date(post.datacriacao).toLocaleDateString()}</span>
                         <span class="post-title">${post.titulo}</span>
                     </div>
                 `).join('')}
@@ -210,7 +210,7 @@ function renderSinglePost() {
                 <div class="post-content-area">
                     <div class="post-header">
                         <h1>${currentPost.titulo}</h1>
-                        <span class="meta">${new Date(currentPost.dataCriacao).toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
+                        <span class="meta">${new Date(currentPost.datacriacao).toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
                     </div>
 
                     <div class="post-body">${currentPost.conteudo}</div>
