@@ -362,12 +362,12 @@ header {
 }
 
 .theme-romantic h1 {
-    font-family: var(--font-display);
+    font-family: var(--font-cursive-dramatic); 
 }
 
 .theme-romantic .post-body {
-    font-family: var(--font-romantic);
-    font-size: 1.6rem;
+    font-family: var(--font-cursive-dramatic); 
+    font-size: 1.8rem; 
 }
 
 .theme-sticky .post-content-area {
@@ -543,7 +543,7 @@ img {
     }
 
     .theme-romantic .post-body {
-        font-size: 1.3rem;
+        font-size: 1.5rem; 
     }
 
     .theme-sticky .post-content-area {
